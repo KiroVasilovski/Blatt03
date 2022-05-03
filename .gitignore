@@ -1,7 +1,7 @@
 # Compiled class file
 *.class
 *.xml
-/**/.idea/*
+.idea/misc.xml
 
 # Log file
 *.log
