@@ -28,11 +28,13 @@ public class Main {
 
         Connection c1 = setup_new_connection();
         c1.setAutoCommit(false);
-        //c1.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+        //c1.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+        c1.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
         //c1.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
         Connection c2 = setup_new_connection();
         c2.setAutoCommit(false);
-        //c2.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+        //c2.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+        c2.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
         //c2.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
         
         
@@ -76,6 +78,90 @@ public class Main {
         ResultSet rs = cs2.executeQuery("SELECT id, name FROM dissheet3 ORDER BY id");
         while (rs.next())
             System.out.println(Integer.toString(rs.getInt("id")) + "," + rs.getString("name"));
+        cs2.close();
+
+        //S2 = r1(x) w2(x) c2 r1(x) c1
+        List<RunnableOperation> s2_operations = new ArrayList<>(Arrays.asList(
+
+                new RunnableOperation(c1, 'r', "SELECT name FROM dissheet3 WHERE id = 1 FOR SHARE;"),
+                new RunnableOperation(c2, 'w', "UPDATE dissheet3 SET name = 'Mickey' WHERE id = 1;"),
+                new RunnableOperation(c2, 'c', "COMMIT;"),
+                new RunnableOperation(c1, 'r', "SELECT name FROM dissheet3 WHERE id = 1 FOR UPDATE;"),
+                new RunnableOperation(c1, 'c', "COMMIT;"))
+        );
+        ExecutorService executor_s2t1 = Executors.newFixedThreadPool(1);
+        ExecutorService executor_s2t2 = Executors.newFixedThreadPool(1);
+        for (RunnableOperation op : s2_operations) {
+
+            if (op.c == c1)
+                executor_s2t1.execute(op);
+
+            if (op.c == c2)
+                executor_s2t2.execute(op);
+
+            Thread.sleep(250);  // Sleep, so the threads in both pools get executed in the desired order
+
+        }
+        executor_s2t1.shutdown();
+        executor_s2t2.shutdown();
+
+        while (!executor_s2t1.isTerminated() && !executor_s2t2.isTerminated()) {
+            Thread.sleep(1000);
+            System.out.println("Waiting for threads");
+        }
+
+        System.out.println("Finished all threads");
+
+
+        // GET Table at the end
+        Connection i3 = setup_new_connection();
+        Statement cs3 = i3.createStatement();
+        ResultSet rs1 = cs3.executeQuery("SELECT id, name FROM dissheet3 ORDER BY id");
+        while (rs1.next())
+            System.out.println(Integer.toString(rs1.getInt("id")) + "," + rs1.getString("name"));
+        cs2.close();
+
+        //S3 = r2(x) w1(x) w1(y) c1 r2(y) w2(x) w2(y) c2
+        List<RunnableOperation> s3_operations = new ArrayList<>(Arrays.asList(
+
+                new RunnableOperation(c2, 'r', "SELECT name FROM dissheet3 WHERE id = 1 FOR SHARE;"),
+                new RunnableOperation(c1, 'w', "UPDATE dissheet3 SET name = 'Mickey' WHERE id = 1;"),
+                new RunnableOperation(c1, 'w', "UPDATE dissheet3 SET name = 'Kiki' WHERE id = 2;"),
+                new RunnableOperation(c1, 'c', "COMMIT;"),
+                new RunnableOperation(c2, 'r', "SELECT name FROM dissheet3 WHERE id = 2 FOR SHARE;"),
+                new RunnableOperation(c2, 'w', "UPDATE dissheet3 SET name = 'Spickey' WHERE id = 1;"),
+                new RunnableOperation(c2, 'w', "UPDATE dissheet3 SET name = 'Viki' WHERE id = 2;"),
+                new RunnableOperation(c2, 'c', "COMMIT;"))
+        );
+        ExecutorService executor_s3t1 = Executors.newFixedThreadPool(1);
+        ExecutorService executor_s3t2 = Executors.newFixedThreadPool(1);
+        for (RunnableOperation op : s3_operations) {
+
+            if (op.c == c1)
+                executor_s3t1.execute(op);
+
+            if (op.c == c2)
+                executor_s3t2.execute(op);
+
+            Thread.sleep(250);  // Sleep, so the threads in both pools get executed in the desired order
+
+        }
+        executor_s3t1.shutdown();
+        executor_s3t2.shutdown();
+
+        while (!executor_s3t1.isTerminated() && !executor_s3t2.isTerminated()) {
+            Thread.sleep(1000);
+            System.out.println("Waiting for threads");
+        }
+
+        System.out.println("Finished all threads");
+
+        // GET Table at the end
+        Connection i4 = setup_new_connection();
+        Statement cs4 = i4.createStatement();
+        ResultSet rs2 = cs4.executeQuery("SELECT id, name FROM dissheet3 ORDER BY id");
+        while (rs2.next())
+            System.out.println(Integer.toString(rs2.getInt("id")) + "," + rs2.getString("name"));
         cs2.close();
 
     }
