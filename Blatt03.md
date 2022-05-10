@@ -28,29 +28,51 @@ After committing the transaction and rerunning the second
 
 ## 3.2 Lock Conflicts
 
-a) After performing an insert on the second machine, we observe
+a) We perform the following operations on the two machines (it is assumed that
+at least one row in `sheet3` already satisfies the condition `id > 5`):
+
+| Machine 1 | Machine 2 |
+|-----------|-----------|
+| `SELECT * FROM sheet3 where id > 5;` | |
+| | `INSERT INTO sheet3 (name) VALUES ("name10")` |
+| `SELECT * FROM sheet3 WHERE id > 5;` | |
+
+After performing the insert on M2, we observe
 an `AccessShareLock` on the table. Re-running
-the `SELECT` instruction on the first machine reveals
+the `SELECT` instruction on M1 reveals
 the newly created row even before committing.
 
-b) After performing an insert on the second connection,
+b) After performing an insert on M2,
 we observe two `AccessShareLock`s on the table. Re-running
-the `SELECT` instruction on the first connection doesn't reveal
+the `SELECT` instruction on M1 doesn't reveal
 the newly created row yet. However, new connections can already
 see the newly created row. The row only becomes visible
-to the first connection after committing.
+to M1 once M2 is committed.
 
-c) With isolation level *Read Committed*, the second transaction
-waits until the first transaction is committed to update the same row.
-After both transactions are committed, the update from the second transaction
-persists in the database as it happened after the update from the first
-transaction.
+PostgreSQL uses snapshot isolation in its *Repeatable Read* isolation level.
+M1 operates on the same snapshot of the database in both `SELECT` instructions.
+A 2PL lock may have prevented M2 from performing the `INSERT INTO` statement
+until M1 released the read lock. This is assuming the read lock would be placed
+on all rows satisfying the condition `id > 5`.
 
-With isolation level *Serializable*, the second transaction still waited
-for the first to commit. After it committed however, the second connection threw
+c) We perform the following two transactions on the database:
+
+| Transaction 1 | Transaction 2 |
+|---------------|---------------|
+| `UPDATE sheet3 SET name = 'name5' WHERE id = 5;`|  |
+| | `UPDATE sheet3 SET name = 'name6' WHERE id = 6;` |
+| | `UPDATE sheet3 SET name = 'name7' WHERE id = 5;` |
+
+With isolation level *Read Committed*, T2
+waits until T1 is committed to update the same row.
+After both transactions are committed, the update from T2
+persists in the database as it happened after the update from T1.
+
+With isolation level *Serializable*, T2 still waited
+for T1 to commit. After it committed however, the second connection threw
 an error `[40001] ERROR: could not serialize access due to concurrent update`.
-We were able to commit the first change of the second commit regardless,
-but in the conflict row, the changes made by the first transaction persisted.
+We were able to commit the first change of T2 regardless,
+but in the conflict row, the changes made by T1 persisted.
 
 d)
 
@@ -65,11 +87,11 @@ transactions in *Serializable* isolation:
 | `UPDATE sheet3 SET name = 'name12' WHERE id = 14;` | |
 
 In the first two instructions, both transactions acquire
-an exclusive lock on one of the two rows of the table. In
-the third instruction, the second transaction now has to wait
-for the first transaction to commit in order to proceed. With
-the final instruction, the first transaction has to wait for
-the second transaction to commit before proceeding. Now both
+an exclusive lock on one of the two rows of the table. With
+the third instruction, T2 now has to wait
+for T1 to commit in order to proceed. With
+the final instruction, T1 has to wait for
+the T2 to commit before proceeding. Now both
 transactions require each other to commit first before being 
 able to proceed, so a deadlock occurs.
 
