@@ -42,6 +42,8 @@ an `AccessShareLock` on the table. Re-running
 the `SELECT` instruction on M1 reveals
 the newly created row even before committing.
 
+(Maybe also `RowExclusiveLock...`?)
+
 b) After performing an insert on M2,
 we observe two `AccessShareLock`s on the table. Re-running
 the `SELECT` instruction on M1 doesn't reveal
