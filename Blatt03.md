@@ -47,13 +47,14 @@ we observe two `AccessShareLock`s on the table. Re-running
 the `SELECT` instruction on M1 doesn't reveal
 the newly created row yet. However, new connections can already
 see the newly created row. The row only becomes visible
-to M1 once M2 is committed.
-
-PostgreSQL uses snapshot isolation in its *Repeatable Read* isolation level.
+to M1 once M2 is committed. PostgreSQL uses snapshot isolation in its *Repeatable Read* isolation level.
 M1 operates on the same snapshot of the database in both `SELECT` instructions.
-A 2PL lock may have prevented M2 from performing the `INSERT INTO` statement
-until M1 released the read lock. This is assuming the read lock would be placed
-on all rows satisfying the condition `id > 5`.
+
+We would expect the behavior to be different with 2PL. To place a lock on the
+initial `SELECT`, either a table lock or a predicate lock (despite predicate locks
+having limited feasibility) would be necessary. Then the `INSERT INTO` statement 
+of M2 would have to wait to acquire a write lock on the table, which can only 
+happen after M1 releases its read lock at the end.
 
 c) We perform the following two transactions on the database:
 
@@ -95,3 +96,6 @@ the T2 to commit before proceeding. Now both
 transactions require each other to commit first before being 
 able to proceed, so a deadlock occurs.
 
+## 3.3 Scheduling
+
+a)
