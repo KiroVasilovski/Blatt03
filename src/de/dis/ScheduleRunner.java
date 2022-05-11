@@ -79,13 +79,13 @@ public class ScheduleRunner {
 
         c1 = getConnection();
         c1.setAutoCommit(false);
-        c1.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-//        c1.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+//        c1.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+        c1.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
         //c1.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
         c2 = getConnection();
         c2.setAutoCommit(false);
-        c2.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-//        c2.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+//        c2.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+        c2.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
         //c2.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
     }
 

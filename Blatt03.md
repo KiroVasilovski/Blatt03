@@ -100,4 +100,108 @@ able to proceed, so a deadlock occurs.
 
 ## 3.3 Scheduling
 
-a)
+a) The results are:
+
+S1
+
+```
+1,Mickey + Max
+2,Donald
+3,Tick
+4,Trick
+5,Track
+```
+
+S2
+
+```
+1,Mickey
+2,Donald
+3,Tick
+4,Trick
+5,Track
+```
+
+S3
+
+```
+1,Spickey
+2,Viki
+3,Tick
+4,Trick
+5,Track
+```
+
+b) The results are:
+
+S1
+
+```
+1,Mickey
+2,Donald
+3,Tick
+4,Trick
+5,Track
+```
+
+S2
+
+```
+1,Mickey
+2,Donald
+3,Tick
+4,Trick
+5,Track
+```
+
+S3
+
+```
+1,Mickey
+2,Kiki
+3,Tick
+4,Trick
+5,Track
+```
+
+c) The results are:
+
+S1
+
+```
+1,Goofy + Max
+2,Donald
+3,Tick
+4,Trick
+5,Track
+```
+
+C1 throws an error `ERROR: could not serialize access due to concurrent update`
+and a subsequent error `ERROR: current transaction is aborted, commands ignored until end of transaction block`.
+
+S2
+
+```
+1,Mickey
+2,Donald
+3,Tick
+4,Trick
+5,Track
+```
+
+No error occurred.
+
+S3
+
+```
+1,Spickey
+2,Viki
+3,Tick
+4,Trick
+5,Track
+```
+
+C2 throws an erorr on committing `ERROR: could not serialize access due to concurrent update`,
+and a subsequent `ERROR: current transaction is aborted, commands ignored until end of transaction block`.
+
+C1 throws an error on the last `UPDATE` statement `ERROR: current transaction is aborted, commands ignored until end of transaction block`.
